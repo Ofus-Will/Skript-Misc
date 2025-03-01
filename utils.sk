@@ -1,0 +1,89 @@
+# add borders to menus
+function setMenuBorders(i: inventory, back: boolean = false):
+    set {_fill} to black stained glass pane named " "
+
+    set slot getMenuBorderSlots({_i}) of {_i} to {_fill}
+
+    # if {_back} = true:
+    #     # TODO
+
+function getMenuBorderSlots(i: inventory, inverse: boolean = false) :: integers:
+    set {_size} to rows of {_i} * 9
+    if {_size} >= 27:
+        add integers from 0 to 8 to {_slots::*}
+        add integers from ({_size} - 9) to ({_size} - 1) to {_slots::*}
+
+        set {_start} to 9
+        loop rows of {_i} - 2 times:
+            add {_start}, {_start} + 8 to {_slots::*}
+            add 9 to {_start}
+
+    return {_slots::*} if {_inverse} = false   
+    return (all integers from 0 to ({_size} - 1)) where [{_slots::*} does not contain input]
+
+function prettify(text: string) :: string:
+    replace all "_" in {_text} with " "
+    return {_text} in strict proper case
+
+function playerHead(texture: string) :: item:
+    set {_i::*} to uuid int array 
+    set {_nbt} to nbt from "{""minecraft:profile"":{id:[I;%{_i::1}%,%{_i::2}%,%{_i::3}%,%{_i::4}%],properties:[{name:""textures"",value:""%{_texture}%""}]}}"
+    return player head with nbt {_nbt}
+
+function getMenu(p: player) :: string:
+    return metadata tag "menu" of {_p}
+
+function setMenu(p: player, menu: string) :: string:
+    set metadata tag "menu" of {_p} to {_menu}
+
+# possibly add nbt to menus and add second check to check if new inventory is a custom one (should always be if its forced an inventory close event, but better to be safe)
+on inventory close:
+    if event-inventoryclosereason != open new:
+        delete metadata tag "menu" of player
+
+function locString(loc: location) :: string:
+    return "X: %x-coordinate of {_loc}%, Y: %y-coordinate of {_loc}%, Z: %z-coordinate of {_loc}%"
+
+function formatTimespan(timespan: timespan) :: string:
+    set {_t::hours} to floor(hours of {_timespan})
+    set {_t::mins} to mod(floor(minutes of {_timespan}), 60)
+    set {_t::secs} to mod(floor(seconds of {_timespan}), 60) 
+    loop {_t::*}:
+        if loop-value < 10:
+            set {_t::%loop-index%} to "0%loop-value%"
+    return "%{_t::hours}%:%{_t::mins}%:%{_t::secs}%"
+
+# TODO: formatNumber()
+
+function giveItem(p: player, item: item):
+    if {_p} can hold {_item}:
+        give {_item} to {_p}
+    else:
+        drop {_item} at location of {_p}
+        # add item pick up priority for player
+
+import:
+    org.bukkit.Bukkit
+
+on disconnect:
+    delete (metadata tag "custom-skin-name" of player)
+    
+function setSkin(player: player, skin: string):
+    if ({_player}'s name) = {_skin}:
+        {_player}.getProfile().getProperties().removeAll("textures")
+    set {_} to Bukkit.createProfile({_skin})
+    {_}.complete()
+    set {_profile} to {_player}.getPlayerProfile()
+    {_profile}.setProperties({_}.getProperties())
+    {_player}.setPlayerProfile({_profile})
+
+player property skin:
+    return type: string
+    get:
+        return (metadata tag "custom-skin-name" of expr-1) ? (expr-1's name)
+    set string:
+        setSkin(expr-1, change value)
+        set (metadata tag "custom-skin-name" of expr-1) to (change value)
+    reset:
+        setSkin(expr-1, (expr-1's name))
+        delete (metadata tag "custom-skin-name" of expr-1)
