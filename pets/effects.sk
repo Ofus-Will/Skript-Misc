@@ -1,0 +1,39 @@
+# leaving hard coded for now
+
+function removePetEffects(p: player, pet: string):
+    if {_pet} = "cheetah":
+        remove swiftness from {_p}
+    else if {_pet} = "villager":
+        remove hero of the village from {_p}
+    else if {_pet} = "iron_golem":
+        set max health of {_p} to 10
+    else if {_pet} = "frog":
+        remove jump boost from {_p}
+    else if {_pet} = "wolf":
+        remove strength from {_p}
+    else if {_pet} = "turtle":
+        remove water breathing from {_p}
+
+function applyPetEffects(p: player, pet: string):
+    if {_pet} = "cheetah":
+        apply infinite swiftness 2 without particles to {_p}
+    else if {_pet} = "villager":
+        apply infinite hero of the village 5 without particles to {_p}
+    else if {_pet} = "iron_golem":
+        set max health of {_p} to 12
+    else if {_pet} = "turtle":
+        apply infinite water breathing without particles to {_p}
+    else if {_pet} = "frog":
+        apply infinite jump boost 2 without particles to {_p}
+    else if {_pet} = "wolf":
+        apply infinite strength 2 without particles to {_p}
+
+# Blaze pet
+on damage:
+    if all:
+        attacker is a player
+        {-pets::player::%attacker's uuid%::active} is set
+        string tag "custom;pet" of nbt of {-pets::%attacker's uuid%::active} = "blaze"
+        event is not cancelled
+    then:
+        ignite victim

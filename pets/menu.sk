@@ -1,0 +1,39 @@
+on inventory click:
+    if getMenu(player) = "pets-menu":
+        cancel event
+
+        exit if type of event-slot = air or black stained glass pane
+
+        set {_pet} to string tag "pet" of custom nbt of event-slot
+        exit if {_pet} is not set
+
+        # spawn pets
+        if any:
+            click type = right mouse button
+            string tag "custom;pet" of nbt of {-pets::players::%player's uuid%::active} = {_pet}
+        then:
+            despawnPet(player)
+        else:
+            spawnPet(player, {_pet})
+
+        close inventory of player 
+
+function petsMenu(p: player):
+    set {_i} to chest inventory with 3 rows named "Pets"
+    set {_uuid} to uuid of {_p}
+
+    set {_n} to 10
+    loop {-pets::names::*}:
+        set {_pet} to loop-value
+        set {_status} to "&aunlocked" if {pets::players::%{_uuid}%::owned::%{_pet}%} is set else "&clocked"
+        set {_description} to {-pets::description::%{_pet}%}
+        set {_color} to {-pets::colors::%{_pet}%}
+
+        set {_item} to ({-pets::head::%{_pet}%} ? player head) named "&fPet: %{_color} ? "&b"%%prettify({_pet})%" with lore "&7Status: %{_status}%", "", "&e%{_description}%"
+        set slot {_n} of {_i} to {_item} with custom nbt from "{pet:""%{_pet}%""}"
+        add 1 to {_n}
+
+    setMenu({_p}, "pets-menu")
+
+    setMenuBorders({_i}, false)
+    open {_i} to {_p}

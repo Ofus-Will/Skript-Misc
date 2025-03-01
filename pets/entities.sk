@@ -1,0 +1,82 @@
+# edge cases
+
+on skript stop:
+    loop all players:
+        despawnPet(loop-player)
+
+on disconnect:
+    despawnPet(player)
+
+on death of player:
+    despawnPet(victim)
+
+# entity handling
+
+function spawnPet(p: player, pet: string):
+    set {_uuid} to uuid of {_p}
+
+    if {-pets::names::*} does not contain {_pet}:
+        send "&cAn internal error occured!" to {_p}
+        exit    
+    if all:
+        {pets::players::%{_uuid}%::owned::*} does not contain {_pet}
+        {_p} is not op
+    then:
+        send "&cYou have not unlocked this pet!" to {_p}
+        exit
+
+    despawnPet({_p})
+
+    # TODO: change to text display
+    # refactor, messy dev code
+    spawn armor stand at {_p} ~ vector(0, 2, 0) with nbt from "{Invisible:1b,Invulnerable:1b,PersistenceRequired:1b,NoBasePlate:1b,NoGravity:1b,Small:1b,Marker:1b}"
+    set {-pets::players::%{_uuid}%::active} to last spawned armor stand
+    set {_active} to {-pets::players::%{_uuid}%::active}
+    equip {_active} with {-pets::head::%{_pet}%}
+    
+    set string tag "custom;pet" of nbt of {_active} to {_pet}
+    set uuid tag "custom;owner" of nbt of {_active} to {_uuid}
+    set {_color} to {-pets::colors::%{_pet}%}
+
+    set {_name} to {-cfg::pets::name}
+    replace all "<name>" in {_name} with "%{_color}%%prettify({_pet})%"
+    send "&aYou have spawned your %prettify({_pet})% pet" to {_p}
+    set displayname of {_active} to {_name}
+
+    applyPetEffects({_p}, {_pet})
+
+    set {_delay} to clamp({-cfg::pets::movementDelay}, 1, 5)
+    set {_delayTicks} to "%{_delay}% ticks" parsed as timespan
+
+    while {_active} is alive:
+
+        # movement
+        if location of {_p} != {_lastLoc}:
+            set {_initOffset} to (vector from yaw yaw of {_p} and pitch 0)
+            set {_petOffset} to ({_initOffset} * -2) + vector(0,1,0)
+            teleport {_active} to {_p} ~ {_petOffset}
+            set float list tag "Rotation" of nbt compound of {_active} to (yaw of {_p}), 0
+        
+        # floating
+        else:
+            set {_currTicks} to int tag "custom;float" of nbt of {_active}
+            set {_distanceStep} to 0.2 / (20/{_delay})
+            set {_delay} to {_delay}
+            if {_currTicks} ? 0 >= 10:
+                set {_distanceStep} to {_distanceStep} * -1
+
+            teleport {_active} to {_active} ~ vector(0, {_distanceStep}, 0)
+            set int tag "custom;float" of nbt of {_active} to {_currTicks} + {_delay}
+            set int tag "custom;float" of nbt of {_active} to 0 if {_currTicks} + {_delay} >= 20
+
+        set {_lastLoc} to location of {_p}
+        wait {_delayTicks}
+
+function despawnPet(p: player):
+    set {_uuid} to uuid of {_p}
+    if {-pets::players::%{_uuid}%::active} is set:
+        set {_pet} to string tag "custom;pet" of nbt of {-pets::players::%{_uuid}%::active}
+        kill {-pets::players::%{_uuid}%::active}
+        delete {-pets::players::%{_uuid}%::active}
+        removePetEffects({_p}, {_pet})
+        send "&cYou have taken back your %prettify({_pet})% pet" to {_p}

@@ -1,0 +1,44 @@
+on script load:
+
+    # Config
+    set {-cfg::pets::movementDelay} to 1 # Lower number is more smooth, higher number provides better performance (range: 1-5) 
+    set {-cfg::pets::particles} to true # enables a particle trail for the pets
+    set {-cfg::pets::name} to "Pet: <name>" # The name that displays next to the head, <name> gets replaced by the pet's name
+
+    set {-pets::names::*} to "cheetah", "villager", "iron_golem", "blaze", "turtle", "frog", "wolf"
+
+    set {-pets::head::cheetah} to skull of ("MHF_Ocelot" parsed as offline player) 
+    set {-pets::description::cheetah} to "Gives permanent speed 2 while equipped!"
+    set {-pets::colors::cheetah} to "&6"
+
+    set {-pets::head::villager} to skull of ("MHF_Villager" parsed as offline player) 
+    set {-pets::description::villager} to "Gives permanent hero of the village 5 while equipped!"
+    set {-pets::colors::villager} to "&5"
+
+    set {-pets::head::iron_golem} to skull of ("golem" parsed as offline player) 
+    set {-pets::description::iron_golem} to "Gives an extra 2 hearts while equipped!"
+    set {-pets::colors::iron_golem} to "&f"
+
+    set {-pets::head::turtle} to skull of ("dantecapo" parsed as offline player) 
+    set {-pets::description::turtle} to "Gives permanent respiration 5 while equipped!"
+    set {-pets::colors::turtle} to "&3"
+
+    set {-pets::head::blaze} to skull of ("MHF_Blaze" parsed as offline player) 
+    set {-pets::description::blaze} to "Lights anything you attack on fire while equipped!"
+    set {-pets::colors::blaze} to "&6"
+
+    set {-pets::head::frog} to skull of ("ShEvA_TrasniK" parsed as offline player) 
+    set {-pets::description::frog} to "Gives permanent jump boost 2 while equipped!"
+    set {-pets::colors::frog} to "&a"
+
+    set {-pets::head::wolf} to skull of ("YUNG00n" parsed as offline player) 
+    set {-pets::description::wolf} to "Gives permanent strength 2 while equipped!"
+    set {-pets::colors::wolf} to "&4"
+
+    set {-pets::items::petEgg} to sniffer egg named "&5&lPet Egg" with lore "&dRight click to unlock a random pet!" with custom nbt from "{custom_item:pet_egg}"
+
+on tab complete of "/pet" or "/pets":
+    if player has permission "admin.pets":
+        set tab completions for position 1 to "give" and "remove"
+        set tab completions for position 2 to all players 
+        set tab completions for position 3 to {-pets::names::*}

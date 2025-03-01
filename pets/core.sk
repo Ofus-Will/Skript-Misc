@@ -1,0 +1,63 @@
+# TODO:
+# possibly switch to permission based system for pets?
+
+command /pets [<text>] [<offline player>] [<text>]:
+    usage: &c/pets <give/remove> <player> <pet>
+    aliases: /pet
+    trigger:
+
+        if arg-1 is not set:
+            petsMenu(player)
+
+        else if sender does not have permission "admins.pets":
+            send "&cPermission denied!"
+
+        else if any:
+            arg-1 != "give" or "remove"
+            arg-2 is not set 
+            arg-3 is not set
+        then:
+            send usage 
+
+        else if {-pets::names::*} does not contain arg-3:
+            send "&cThat pet does not exist!"
+
+        else if arg-1 = "give":
+            givePet(arg-2, arg-3, command sender)
+
+        else if arg-1 = "remove":
+            removePet(arg-2, arg-3, command sender)
+
+        else:
+            send {-cfg::errorMsg}
+
+function givePet(p: player, pet: string, sender: sender):
+    set {_uuid} to uuid of {_p}
+    if {pets::players::%{_uuid}%::owned::%{_pet}%} is set:
+        send "&cThat player already owns that pet!" to {_sender}
+    else:  
+        set {pets::players::%{_uuid}%::owned::%{_pet}%} to {_pet}
+        set {_pet} to prettify({_pet})
+        send "&aYou have unlocked pet %{_pet}%!" to {_p} if {_p} is online 
+        send "&aUnlocked pet %{_pet}% for %{_p}%" to {_sender} if {_sender} != {_p}
+
+function removePet(p: player, pet: string, sender: sender):
+    set {_uuid} to uuid of {_p}
+    if {pets::players::%{_uuid}%::owned::%{_pet}%} is not set:
+        send "&cThat player does not own that pet!" to {_sender}
+    else:
+        delete {pets::players::%{_uuid}%::owned::%{_pet}%}
+        set {_pet} to prettify({_pet})
+        send "&cYour %{_pet}% pet has been removed" to {_p}
+        send "&aRemoved %{_pet}% from %{_p}%'s pets" to {_sender} if {_sender} != {_p}
+
+on right click:
+    if string tag "custom_item" of custom nbt of tool = "pet_egg":
+        cancel event 
+        set {_random} to random element out of ({-pets::names::*} where [{pets::players::%player's uuid%::owned::%input%} is not set])
+        if {_random} is set:
+            givePet(player, {_random}, console)
+            remove 1 of tool from tool
+
+        else:
+            send "&cThere are no more pets for you to unlock!" to player
