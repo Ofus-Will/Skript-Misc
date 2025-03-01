@@ -1,0 +1,80 @@
+command /blackmarket [<text>] [<integer>] [<integer>]:
+    usage: &c/blackmarket (additem/viewitems/cancel) (money) (shards)
+    trigger:
+        if arg-1 is not set:
+            if {-cfg::blackMarket::commandEnabled} = false:
+                send "&cThe black market is not available via command!"
+            else if {blackMarket::currentItems::*} is not set:
+                send "&cThe black market has not been set up yet!"
+            else:
+                openBlackMarketPlayerMenu(player)
+        
+        else if player does not have permission "admin.blackmarket":
+            send "&cPermission denied!"
+
+        else if arg-1 = "viewitems":
+            openBlackMarketAdminMenu(player)
+
+        else if arg-1 = "cancel":
+            if {-admin::%player's uuid%::blackMarketModify} is set:
+                delete {-admin::%player's uuid%::blackMarketModify} 
+                send "&cCancelled your black market edit"
+            else:
+                send "&cYou are not currently editing the black market!"
+
+        else if any:
+            arg-1 != "additem"
+            arg-2 is not set 
+            arg-3 is not set 
+        then:
+            send usage
+
+        else:
+            addBlackMarketItem(player, tool of player, arg-2, arg-3)
+
+# change to every minute if you're worried about performance and adjust accordingly
+every second:
+    set {_refreshTime} to {-cfg::blackMarket::refreshTime}
+    if (difference between now and {blackMarket::lastRefresh}) ? {_refreshTime} >= {_refreshTime}:
+        updateBlackMarket()
+
+function updateBlackMarket():
+    delete {blackMarket::currentItems::*}, {blackMarket::purchased::*}
+    set {blackMarket::lastRefresh} to now 
+
+        exit if {blackMarket::items::*} is not set 
+
+    delete {blackMarket::currentItems::*}
+    send {-cfg::blackMarket::refreshMsg} to all players 
+
+    loop 2 times:
+        set {_item} to random element out of ({blackMarket::items::*} where [input != {_item}])
+        set {blackMarket::currentItems::%{_item}%} to {_item}
+    
+function buyBlackMarketItem(p: player, item: item, currency: string):
+    exit if {blackMarket::items::%{_item}%} is not set 
+    set {_item} to removeBlackMarketLore({_p}, {_item})
+
+    if any:
+        {blackMarket::purchased::%{_item}%} is set 
+        lore of {_item} contains "&c&lPURCHASED"
+    then:
+        send "&cSomeone has already purchased this item!" to {_p}
+        exit 
+    
+    set {_uuid} to uuid of {_p}
+    set {_cost} to {blackMarket::costs::%{_item}%::%{_currency}%}
+
+    if {stats::%{_uuid}%::balance::%{_currency}%} ? {_cost} >= {_cost}:
+        set {blackMarket::purchased::%{_item}%} to true 
+        giveItem({_p}, {_item})
+
+        set {_msg} to {-cfg::blackMarket::purchaseMsg}
+        replace all "<player>" in {_msg} with "%{_p}%"
+        replace all "<item>" in {_msg} with "%{_item}%"
+
+        send "&a%{_p}% has purchased %{_item}% from the black market!" to all players
+        updateBlackMarketPlayerMenu(top inventory of {_p})
+
+    else:
+        send "&cYou can not afford this item!" to {_p}

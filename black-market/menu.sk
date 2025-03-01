@@ -1,0 +1,91 @@
+# Black market admin menu
+
+function openBlackMarketAdminMenu(p: player):
+    if {blackMarket::items::*} is not set:
+        send "&cThere are currently no black market items!" to {_p}
+    else if all:
+        (all players where [getMenu(input) = "blackmarket-admin-menu"]) is set 
+        getMenu({_p}) != "blackmarket-admin-menu"
+    then:
+        send "&cSomeone else is currently modifying the black market!" to {_p}
+    else:
+        set {_i} to chest inventory with 6 rows named "Black Market (Modify)"
+        setMenuBorders({_i})
+
+        setMenu({_p}, "blackmarket-admin-menu")
+        open {_i} to {_p}
+
+        updateBlackMarketAdminMenu({_i})
+
+function updateBlackMarketAdminMenu(i: inventory):
+    set slot getMenuBorderSlots({_i}, true) of {_i} to air
+
+    set {_n} to 9
+    loop {blackMarket::items::*}:
+        add 1 to {_n}
+        continue if type of slot {_n} of {_i} != air 
+
+        set {_item} to loop-value 
+        add getBlackMarketLore({_item}, true) to lore of {_item}
+
+        set slot {_n} of {_i} to {_item}
+
+on inventory click:
+    if getMenu(player) = "blackmarket-admin-menu":
+        cancel event
+
+        if any:
+            getMenuBorderSlots(event-inventory) contains index of event-slot
+            event-inventory != top inventory of player 
+            type of event-slot = air
+        then:
+            exit
+
+        set {_item} to removeBlackMarketLore(player, event-slot)
+
+        if click type = left mouse button:
+            modifyBlackMarketItem(player, {_item})
+            close inventory of player
+
+        else if click type = right mouse button:
+            removeBlackMarketItem(player, {_item})
+            updateBlackMarketAdminMenu(top inventory of player)
+
+# Player black market menu 
+
+function openBlackMarketPlayerMenu(p: player):
+    set {_i} to chest inventory with 3 rows named "&0Black Market"
+    
+    setMenu({_p}, "blackmarket-menu")
+    open {_i} to {_p}
+
+    while getMenu({_p}) = "blackmarket-menu":
+        updateBlackMarketPlayerMenu({_i})
+        wait 1 second 
+
+function updateBlackMarketPlayerMenu(i: inventory):
+    set {_refreshTime} to getBlackMarketRefreshTime()
+
+    set slot (integers from 0 to 26) of {_i} to black stained glass pane named " "
+    set slot 13 of {_i} to clock named "&dBlack Market" with lore {-cfg::blackMarket::description}, "", "&fRefreshes in: &a%{_refreshTime}%"
+
+    set {_n} to 10
+    loop {blackMarket::currentItems::*}:
+        if {blackMarket::items::%loop-value%} is set:
+            set {_item} to loop-value 
+            add getBlackMarketLore({_item}) to lore of {_item}
+            set slot {_n} of {_i} to {_item}
+        else:
+            set slot {_n} of {_i} to barrier named "&4&lERROR" with lore "&cItem removed from black market"
+        add 6 to {_n}
+
+on inventory click:
+    if getMenu(player) = "blackmarket-menu":
+        cancel event 
+
+        exit if index of event-slot != 10 or 16
+
+        if click type = left mouse button:
+            buyBlackMarketItem(player, event-slot, "money")
+        else if click type = right mouse button:
+            buyBlackMarketItem(player, event-slot, "shards")

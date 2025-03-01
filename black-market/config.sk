@@ -1,0 +1,11 @@
+on script load:
+    set {-cfg::blackMarket::commandEnabled} to true # allow players to access menu by running /blackmarket 
+    set {-cfg::blackMarket::refreshTime} to 15 minutes # the time between black market refreshes
+
+    set {-cfg::blackMarket::refreshMsg} to "&aThe black market has refreshed!" # the message sent to notify all players the black market has been refreshed
+    set {-cfg::blackMarket::purchaseMsg} to "&a<player> has purchased <item> from the black market!" # The message sent when a player makes a black market purchase (<player> and <item> get replaced)
+    set {-cfg::blackMarket::description} to "&7Be the first to buy, before its too late!" # Description for the black market in the menu
+
+on tab complete of "/blackmarket":
+    if player has permission "admin.blackmarket":
+        set tab completions for position 1 to "additem", "viewitems", "cancel"

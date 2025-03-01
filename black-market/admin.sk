@@ -1,0 +1,76 @@
+function addBlackMarketItem(p: player, item: item, money: integer, shards: integer):
+    set {_tool} to tool of {_p}
+    if type of {_tool} = air:
+        send "&cYou are not holding an item!" to {_p}
+    else if any:
+        {_money} < 0
+        {_shards} < 0
+    then:
+        send "&cAll prices must be non-negative!" to {_p}
+
+    else if {blackMarket::items::%{_tool}%} is set:
+        send "&cThat item is already in the black market!" to {_p}
+
+    else:
+        set {blackMarket::items::%{_tool}%} to {_tool}
+        set {blackMarket::costs::%{_tool}%::money} to {_money}
+        set {blackMarket::costs::%{_tool}%::shards} to {_shards}
+
+        send "&aAdded your tool to the black market!" to {_p}
+        set tool of {_p} to air
+        
+function removeBlackMarketItem(p: player, item: item):
+    if {blackMarket::items::%{_item}%} is not set:
+        send "&cThat item is not in the black market!" to {_p}
+
+    else:
+        delete {blackMarket::items::%{_item}%}, {blackMarket::costs::%{_item}%::*}
+        send "&aSuccessfully removed black market item!" to {_p}
+
+function modifyBlackMarketItem(p: player, item: item):
+    if {blackMarket::items::%{_item}%} is not set:
+        send {-cfg::errorMsg} to {_p}
+        exit 
+
+    set {_uuid} to uuid of {_p}
+    if {-admin::%{_uuid}%::blackMarketModify} is set:
+        send "&cYou are already modifying the black market!" to {_p}
+        
+    else:
+        set {-admin::%{_uuid}%::blackMarketModify} to {_item}
+        blackMarketChatModify({_p})
+        
+function blackMarketChatModify(p: player):
+    set {_uuid} to uuid of {_p}
+    set {_item} to {-admin::%{_uuid}%::blackMarketModify}
+    set {_cost::money} to {blackMarket::costs::%{_item}%::money} ? 0
+    set {_cost::shards} to {blackMarket::costs::%{_item}%::shards} ? 0
+    send "", "&fPlease enter your new prices into chat", "&8➠ &fFormat: &amoney-shards", "&8➠ &fExample: &a100-50", "&8➠ &fCurrent: &a%{_cost::money}%$, %{_cost::shards}% shards", "" to {_p}
+
+on chat:
+    if {-admin::%player's uuid%::blackMarketModify} is set:
+        cancel event 
+        set {_prices::*} to message parsed as "%number%-%number%"
+        if size of {_prices::*} != 2:
+            send "&cIncorrect, please try again! To cancel type /blackmarket cancel"
+            blackMarketChatModify(player)
+        else if any:
+            {_prices::1} < 0
+            {_prices::2} < 0
+        then:
+            send "&cPlease ensure all numbers are non-negative!"
+            blackMarketChatModify(player)
+        else:
+            set {_item} to {-admin::%player's uuid%::blackMarketModify}
+            set {blackMarket::costs::%{_item}%::money} to {_prices::1}
+            set {blackMarket::costs::%{_item}%::shards} to {_prices::2}
+            delete {-admin::%player's uuid%::blackMarketModify}
+            send "&aSuccessfully changed the price of your black market item (%{_prices::1}%$, %{_prices::2}% shards)"
+
+on command:
+    if all:
+        {-admin::%player's uuid%::blackMarketModify} is set
+        full command != "blackmarket cancel"
+    then:
+        cancel event 
+        send "&cTo cancel editing the black market type /blackmarket cancel"
