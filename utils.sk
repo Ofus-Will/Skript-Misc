@@ -87,3 +87,9 @@ player property skin:
     reset:
         setSkin(expr-1, (expr-1's name))
         delete (metadata tag "custom-skin-name" of expr-1)
+
+function getWeightedRandomElement(elements: objects, weights: numbers) :: object:
+    set {_random} to random number from 0 to sum({_weights::*})
+    loop {_weights::*}:
+        return {_elements::%loop-index%} if {_random} < loop-value
+        remove loop-value from {_random}
