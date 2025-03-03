@@ -23,7 +23,7 @@ function updateBlackMarketAdminMenu(i: inventory):
     set {_n} to 9
     loop {blackMarket::items::*}:
         add 1 to {_n}
-        continue if type of slot {_n} of {_i} != air 
+        add 2 to {_n} if type of slot {_n} of {_i} != air # TODO: add multi page support
 
         set {_item} to loop-value 
         add getBlackMarketLore({_item}, true) to lore of {_item}
@@ -31,7 +31,10 @@ function updateBlackMarketAdminMenu(i: inventory):
         set slot {_n} of {_i} to {_item}
 
 on inventory click:
-    if getMenu(player) = "blackmarket-admin-menu":
+    if all:
+        getMenu(player) = "blackmarket-admin-menu"
+        event-inventory = top inventory of player 
+    then:
         cancel event
 
         if any:
@@ -80,7 +83,10 @@ function updateBlackMarketPlayerMenu(i: inventory):
         add 6 to {_n}
 
 on inventory click:
-    if getMenu(player) = "blackmarket-menu":
+    if all:
+        getMenu(player) = "blackmarket-menu"
+        event-inventory = top inventory of player 
+    then:
         cancel event 
 
         exit if index of event-slot != 10 or 16

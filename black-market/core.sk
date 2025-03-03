@@ -42,7 +42,7 @@ function updateBlackMarket():
     delete {blackMarket::currentItems::*}, {blackMarket::purchased::*}
     set {blackMarket::lastRefresh} to now 
 
-        exit if {blackMarket::items::*} is not set 
+    exit if {blackMarket::items::*} is not set 
 
     delete {blackMarket::currentItems::*}
     send {-cfg::blackMarket::refreshMsg} to all players 
@@ -73,7 +73,9 @@ function buyBlackMarketItem(p: player, item: item, currency: string):
         replace all "<player>" in {_msg} with "%{_p}%"
         replace all "<item>" in {_msg} with "%{_item}%"
 
-        send "&a%{_p}% has purchased %{_item}% from the black market!" to all players
+        set {_type} to prettify("%type of {_item}%")
+        set {_name} to "%item amount of {_item}%x %(uncoloured name of {_item}) ? {_type}%"
+        send "&a%{_p}% has purchased %{_name}% from the black market!" to all players
         updateBlackMarketPlayerMenu(top inventory of {_p})
 
     else:
