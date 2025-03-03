@@ -1,0 +1,18 @@
+on script load:
+    set {-cfg::errorMsg} to "&cAn internal error occured, please contact a staff member!"
+    set {-cfg::cmdCooldown} to 0.5 seconds 
+
+on command:
+    if all:
+        (difference between {-cmdCooldown::%player's uuid%} and now) ? {-cfg::cmdCooldown} < {-cfg::cmdCooldown}
+        player does not have permission "admin.cmdcooldown"
+    then:
+        cancel event 
+        send "&cPlease wait before entering another command!"
+    else:
+        set {-cmdCooldown::%player's uuid%} to now 
+
+on disconnect:
+    delete {-cmdCooldown::%player's uuid%}
+
+
