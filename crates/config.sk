@@ -1,0 +1,4 @@
+on script load:
+    set {-cfg::crates::animation} to false 
+    set {-cfg::crates::chances} to false 
+    set {-cfg::crates::virtual} to false

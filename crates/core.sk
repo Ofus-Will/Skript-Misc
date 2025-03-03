@@ -1,0 +1,58 @@
+command /crate [<text>] [<text>]:   
+    aliases: /crates 
+    permission: admin.crates 
+    permission message: &cPermission denied!
+    usage: &c/crates (create/delete/edit/list) (crate)
+    trigger:
+        if arg-1 is not set:
+            if {-cfg::crates::virtual} = true:
+                # TODO - VIRTUAL
+            else:
+                send usage
+        else if arg-1 = "list":
+            send "&aCrates: %(all indices of {crates::*}) ? "none"%"
+        else if any:
+            arg-1 != "create", "delete", or "edit"
+            arg-2 is not set 
+        then:
+            send usage 
+        
+        else if arg-1 = "create":
+
+            if {crates::%arg-2%} is set:
+                send "&cThat crate already exists!"
+                exit 
+
+            set {crates::%arg-2%} to arg-2 
+            send "&aSuccessfully created crate %prettify(arg-2)%"
+        
+        else if {crates::%arg-2%} is not set:
+            send "&cThat crate does not exist!"
+
+        else if arg-1 = "delete":
+            delete {crates::%arg-2%}
+            delete {crates::%arg-2%::rewards::*}
+            send "&aSuccessfully deleted %prettify(arg-2)% crate" 
+
+        else if arg-1 = "edit":
+            openCrateRewardsAdminMenu(player, arg-2)
+
+
+command /key [<offline player>] [<text>]:
+    permission: admin.crates 
+    permission message: &cPermission denied!
+    usage: &c/key (player) (crate)
+    trigger:
+        giveCrateKey(arg-1, arg-2, sender, true)
+
+command /keyall <text>:
+    usage: &c/keyall (crate)
+    permission: admin.crates 
+    permission message: &cPermission denied!
+    trigger:
+        if {crates::%arg-1%} is not set:
+            send "&cThat crate does not exist!"
+            exit 
+
+        send "&a&lKeyall: %prettify(arg-1)% key" to all players
+        giveCrateKey(all players, arg-1, sender)

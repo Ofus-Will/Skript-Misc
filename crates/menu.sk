@@ -1,0 +1,44 @@
+function openCrateRewardsAdminMenu(p: player, crate: string):    
+    if {crates::%{_crate}%} is not set:
+        send "&cThat crate does not exist!" to {_p}
+        exit 
+
+    set {_inv} to chest inventory with 6 rows named "Crate Rewards: %prettify({_crate})%"
+
+    set {_slots::*} to getMenuBorderSlots({_inv})
+    set slot {_slots::*} of {_inv} to black stained glass pane named " "
+
+    setMenu({_p}, "edit-crate-%{_crate}%")
+    open {_inv} to {_p}
+
+    updateEditCrateRewardsAdminMenu({_inv}, {_crate})
+
+function updateEditCrateRewardsAdminMenu(inv: inventory, crate: string):
+    set {_slots::*} to getMenuBorderSlots({_inv}, true)
+
+    set slot {_slots::*} of {_inv} to air 
+
+    loop {_slots::*}:
+        add 1 to {_n}
+        set {_item} to {crates::%{_crate}%::rewards::%{_n}%}
+        set slot loop-value of {_inv} to {_item}
+
+
+on inventory click:
+    set {_menu} to getMenu(player)
+    exit if {_menu} does not contain "edit-crate"
+        
+    set {_crate} to last element out of (split {_menu} by "-")
+    if event-inventory = top inventory of player:
+        set {_slots::*} to getMenuBorderSlots(event-inventory)
+        if {_slots::*} contains index of event-slot:
+            cancel event 
+
+on inventory close:
+    set {_menu} to getMenu(player)
+    exit if {_menu} does not contain "edit-crate"
+
+    set {_crate} to last element out of (split {_menu} by "-")
+    set {_slots::*} to getMenuBorderSlots(event-inventory, true)
+    set {crates::%{_crate}%::rewards::*} to (slot {_slots::*} of top inventory of player) where [type of input != air] 
+    send "&aSaved rewards for %prettify({_crate})% crate"
