@@ -1,4 +1,4 @@
-function openCrateRewardsAdminMenu(p: player, crate: string):    
+function openCrateRewardsMenu(p: player, crate: string, action: string = "view"):    
     if {crates::%{_crate}%} is not set:
         send "&cThat crate does not exist!" to {_p}
         exit 
@@ -8,12 +8,23 @@ function openCrateRewardsAdminMenu(p: player, crate: string):
     set {_slots::*} to getMenuBorderSlots({_inv})
     set slot {_slots::*} of {_inv} to black stained glass pane named " "
 
-    setMenu({_p}, "edit-crate-%{_crate}%")
+    if {_action} = "edit":
+        set {_tag} to "edit-crate-%{_crate}%"
+    else if {_action} = "open":
+        set {_tag} to "open-crate"
+    else:
+        set {_tag} to "view-crate"
+
+    setMenu({_p}, {_tag})
     open {_inv} to {_p}
 
-    updateEditCrateRewardsAdminMenu({_inv}, {_crate})
+    fillCrateRewardsMenu({_inv}, {_crate})
 
-function updateEditCrateRewardsAdminMenu(inv: inventory, crate: string):
+    # has to be done after opening for some reason
+    if {_action} = "open":
+        set name of {_inv} to "Pick any reward!"
+
+function fillCrateRewardsMenu(inv: inventory, crate: string):
     set {_slots::*} to getMenuBorderSlots({_inv}, true)
 
     set slot {_slots::*} of {_inv} to air 
@@ -33,6 +44,27 @@ on inventory click:
         set {_slots::*} to getMenuBorderSlots(event-inventory)
         if {_slots::*} contains index of event-slot:
             cancel event 
+
+on inventory click:
+    set {_menu} to getMenu(player)
+    exit if {_menu} != "view-crate"
+
+    cancel event 
+
+on inventory click:
+    set {_menu} to getMenu(player)
+    exit if {_menu} != "open-crate"
+
+    cancel event 
+
+    if all:
+        type of event-slot != black stained glass pane or air
+        event-inventory = top inventory of player
+    then:
+        set {_item} to event-slot 
+        giveItem(player, {_item})
+        send "&a&l+ %itemToChat({_item})%" 
+        close inventory of player
 
 on inventory close:
     set {_menu} to getMenu(player)

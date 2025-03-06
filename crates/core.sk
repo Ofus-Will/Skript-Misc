@@ -2,7 +2,7 @@ command /crate [<text>] [<text>]:
     aliases: /crates 
     permission: admin.crates 
     permission message: &cPermission denied!
-    usage: &c/crates (create/delete/edit/list) (crate)
+    usage: &c/crates (create/delete/edit/list/setblock) (crate)
     trigger:
         if arg-1 is not set:
             if {-cfg::crates::virtual} = true:
@@ -11,12 +11,12 @@ command /crate [<text>] [<text>]:
                 send usage
         else if arg-1 = "list":
             send "&aCrates: %(all indices of {crates::*}) ? "none"%"
-        else if any:
-            arg-1 != "create", "delete", or "edit"
-            arg-2 is not set 
-        then:
+        else if arg-1 != "create", "delete", "setblock" or "edit":
             send usage 
         
+        else if arg-2 is not set:
+            send "&cPlease specify a crate!"
+
         else if arg-1 = "create":
 
             if {crates::%arg-2%} is set:
@@ -25,7 +25,7 @@ command /crate [<text>] [<text>]:
 
             set {crates::%arg-2%} to arg-2 
             send "&aSuccessfully created crate %prettify(arg-2)%"
-        
+
         else if {crates::%arg-2%} is not set:
             send "&cThat crate does not exist!"
 
@@ -35,8 +35,23 @@ command /crate [<text>] [<text>]:
             send "&aSuccessfully deleted %prettify(arg-2)% crate" 
 
         else if arg-1 = "edit":
-            openCrateRewardsAdminMenu(player, arg-2)
+            openCrateRewardsMenu(player, arg-2, "edit")
 
+        else if arg-1 = "setblock":
+            set {_block} to target block
+            if target block is not set:
+                send "&cYou are not looking at a block!"
+            
+            else if all:
+                type of target block != ender chest 
+                inventory of target block is not set 
+            then:
+                send "&cYour target block does not have an inventory!"
+
+            else:
+                set {_loc} to location of {_block}
+                set {locationToCrate::%{_loc}%} to arg-2
+                send "&aSet location of %arg-2% crate to %locString({_loc})% (%type of {_block}%)"
 
 command /key [<offline player>] [<text>]:
     permission: admin.crates 
@@ -56,3 +71,27 @@ command /keyall <text>:
 
         send "&a&lKeyall: %prettify(arg-1)% key" to all players
         giveCrateKey(all players, arg-1, sender)
+
+on right click:
+    if event-block is set:
+        set {_loc} to location of event-block
+        set {_crate} to {locationToCrate::%{_loc}%}
+        if {_crate} is set:
+            cancel event 
+
+            set {_nbt} to string tag "custom_item" of custom nbt of tool of player 
+            if {_nbt} = "%{_crate}%_crate_key":
+                remove 1 of tool from tool
+                openCrateRewardsMenu(player, {_crate}, "open")
+            else:
+                push player backwards at speed 0.5
+                send "&cYou do not have a %prettify({_crate})% crate key!" to player
+
+on left click:
+    if event-block is set:
+        set {_loc} to location of event-block
+        set {_crate} to {locationToCrate::%{_loc}%}
+        if {_crate} is set:
+            cancel event 
+
+            openCrateRewardsMenu(player, {_crate}, "view")

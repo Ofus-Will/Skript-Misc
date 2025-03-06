@@ -2,3 +2,16 @@ on script load:
     set {-cfg::crates::animation} to false 
     set {-cfg::crates::chances} to false 
     set {-cfg::crates::virtual} to false
+
+on tab complete of "/crate" or "/crates":
+    if player has permission "admin.crates":
+        set tab completions for position 1 to "create", "delete", "edit", "list", "setblock"
+        set tab completions for position 2 to all indices of {crates::*}
+
+on tab complete of "/keyall":
+    if player has permission "admin.crates":
+        set tab completions for position 1 to all indices of {crates::*}
+
+on tab complete of "/key":
+    if player has permission "admin.crates":
+        set tab completions for position 2 to all indices of {crates::*}

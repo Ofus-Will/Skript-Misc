@@ -12,5 +12,8 @@ function giveCrateKey(p: players, crate: string, sender: sender, notify: boolean
     else:
         loop {_p::*}:
             set {_uuid} to uuid of loop-value
-            add 1 to {keys::%{_uuid}%::%{_crate}%}
-            send "&aYou received a %prettify({_crate})% crate key!" to loop-value if {_notify} = true
+            # add 1 to {keys::%{_uuid}%::%{_crate}%}
+            set {_formattedCrate} to prettify({_crate})
+            set {_key} to (tripwire hook of unbreaking 1 named "&d&l%{_formattedCrate}% Crate Key" with lore "&7Right click on the crate to open!" with custom nbt from "{custom_item:%{_crate}%_crate_key}") with item flag hide enchants
+            giveItem(loop-value, {_key})
+            send "&aYou received a %{_formattedCrate}% crate key!" to loop-value if {_notify} = true

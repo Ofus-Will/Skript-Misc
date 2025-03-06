@@ -1,5 +1,6 @@
 # leaving hard coded for now
 
+# possibly get rid of second argument? redundant
 function removePetEffects(p: player, pet: string):
     if {_pet} = "cheetah":
         remove swiftness from {_p}

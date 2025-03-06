@@ -1,4 +1,5 @@
 command /blackmarket [<text>] [<integer>] [<integer>]:
+    aliases: /bm
     usage: &c/blackmarket (additem/viewitems/cancel) (money) (shards)
     trigger:
         if arg-1 is not set:
@@ -65,7 +66,15 @@ function buyBlackMarketItem(p: player, item: item, currency: string):
     set {_uuid} to uuid of {_p}
     set {_cost} to {blackMarket::costs::%{_item}%::%{_currency}%}
 
-    if {stats::%{_uuid}%::balance::%{_currency}%} ? {_cost} >= {_cost}:
+    if {_currency} = "money":
+        set {_canAfford} to whether balance of {_p} >= {_cost}
+        if {_canAfford} = true:
+            remove {_cost} from balance of {_p} 
+    else if {_currency} = "shards":
+        set {_canAfford} to whether {stats::%{_uuid}%::shards} >= {_cost}
+        if {_canAfford} = true:
+            remove {_cost} from {stats::%{_uuid}%::shards} 
+    if {_canAfford} = true:
         set {blackMarket::purchased::%{_item}%} to true 
         giveItem({_p}, {_item})
 
@@ -73,10 +82,9 @@ function buyBlackMarketItem(p: player, item: item, currency: string):
         replace all "<player>" in {_msg} with "%{_p}%"
         replace all "<item>" in {_msg} with "%{_item}%"
 
-        set {_type} to prettify("%type of {_item}%")
-        set {_name} to "%item amount of {_item}%x %(uncoloured name of {_item}) ? {_type}%"
-        send "&a%{_p}% has purchased %{_name}% from the black market!" to all players
+        send "&a%{_p}% has purchased %itemToChat({_item})% from the black market!" to all players
         updateBlackMarketPlayerMenu(top inventory of {_p})
 
     else:
+        # close inventory of {_p}
         send "&cYou can not afford this item!" to {_p}

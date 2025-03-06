@@ -80,3 +80,4 @@ function despawnPet(p: player):
         delete {-pets::players::%{_uuid}%::active}
         removePetEffects({_p}, {_pet})
         send "&cYou have taken back your %prettify({_pet})% pet" to {_p}
+        

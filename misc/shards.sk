@@ -1,0 +1,57 @@
+on script load:
+    set {-cfg::shards::periodicShards} to 10
+
+on join:
+    set {-stats::%player's uuid%::periodicShards} to now 
+
+on disconnect:
+    delete {-stats::%player's uuid%::periodicShards}
+
+every minute:
+    loop all players:
+        if difference between now and {-stats::%loop-player's uuid%::periodicShards} >= 15 minutes:
+            set {-stats::%loop-player's uuid%::periodicShards} to now 
+            set {_shards} to {-cfg::shards::periodicShards} 
+            add {_shards} to {stats::%loop-player's uuid%::shards}
+            send "&aYou have received %{_shards}% shards for being online!" to loop-player 
+
+command /shards [<text>] [<offline player>] [<number>]:
+    usage: &c/shards (set/give/remove/reset) (player) (shards)
+    trigger:
+        if arg-1 is not set:
+            send "&aShards: %{stats::%player's uuid%::shards} ? 0%" 
+            set {_diff} to difference between {-stats::%player's uuid%::periodicShards} and now  
+            send "&aNext shards reward: %formatTimespan(difference between 15 minutes and {_diff})%"
+        else if sender does not have permission "admin.shards":
+            send "&cYou do not have permission to use this command with arguments!"
+        else if arg-1 != "set", "give", "remove" or "reset":
+            send usage 
+
+        else if arg-2 is not set:
+            send "&cPlease specify a player!"
+        
+        else if arg-1 = "reset":
+            delete {stats::%arg-2's uuid%::shards}
+            send "&aReset %arg-2%'s shards to 0" 
+        
+        else if arg-3 is not set:
+            send "&CPlease specify a shards amount!"
+        
+        else if arg-3 < 0:
+            send "&cShard number must be non-negative!"
+
+        else if arg-1 = "set":
+            set {stats::%arg-2's uuid%::shards} to arg-3 
+            send "&aSet %arg-2%'s shards to %arg-3%"
+
+        else if arg-1 = "give":
+            add arg-3 to {stats::%arg-2's uuid%::shards}
+            send "&aGave %arg-3% shards to %arg-2%"
+
+        else if arg-1 = "remove":
+            if arg-3 > {stats::%arg-2's uuid%::shards}:
+                send "&c%arg-2% does not have that many shards!"
+                exit 
+
+            remove arg-3 from {stats::%arg-2's uuid%::shards}
+            send "&aRemoved %arg-3% from %arg-2%'s shards"
