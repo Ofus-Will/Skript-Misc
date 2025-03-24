@@ -1,0 +1,3 @@
+on script load:
+    set {-cfg::shop::purchaseMsg} to "&fPurchased &a<item> &ffor &c$<cost>"
+    set {-cfg::shop::sellMsg} to "&fSold &a<item> &ffor &a$<cost>"

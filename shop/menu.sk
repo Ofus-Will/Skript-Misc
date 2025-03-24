@@ -1,0 +1,199 @@
+function openShopPlayerMenu(p: player, category: string = ""):
+    # set {_uuid} to uuid of {_p}
+
+    if {_category} = "":
+        set {_inv} to chest inventory with 3 rows named "Shop"
+
+        loop {shop::*}:
+            set {_slot} to {shop::%loop-value%::slot}
+            set {_item} to {shop::%loop-value%::item}
+            set {_category} to prettify(loop-value)
+
+            set slot {_slot} of {_inv} to {_item} named "&aCategory: %{_category}%" with lore "&7Click to open the category"
+            set string tag "category" of custom nbt of slot {_slot} of {_inv} to {_category}
+
+        setMenu({_p}, "shop-menu")
+        open {_inv} to {_p}
+
+    else if {shop::%{_category}%} is not set:
+        send "&cThat category does not exist!" to {_p}
+
+    else if {shop::%{_category}%::items::*} is not set:
+        send "&cThat category has no items!" to {_p}
+
+    else:
+
+        loop {shop::%{_category}%::items::*}:
+            set {_slots::%loop-index%} to loop-index parsed as number 
+            if {_slots::%loop-index%} > ({_largest} ? 0):
+                set {_largest} to {_slots::%loop-index%}
+
+        set {_rows} to max(ceil({_largest} / 9), 1)
+        set {_rows} to min(6, {_rows} + 1)
+
+        set {_inv} to chest inventory with {_rows} rows named "Shop: %{_category}%"
+
+        loop {shop::%{_category}%::items::*}:
+            set {_slot} to {_slots::%loop-index%}
+            set {_buy} to {shop::%{_category}%::%{_slot}%::buy}
+            set {_sell} to {shop::%{_category}%::%{_slot}%::sell}
+            set slot {_slot} of {_inv} to loop-value
+            add "", "&8➠ &7Buy: &a$%{_buy}% &8(&fLMB&8)", "&8➠ &7Sell: &c$%{_sell}% &8(&fRMB&8)" to lore of slot {_slot} of {_inv}
+            set float tag "buy" of custom nbt of slot {_slot} of {_inv} to {_buy}
+            set float tag "sell" of custom nbt of slot {_slot} of {_inv} to {_sell}
+    
+        set {_back} to ({_rows} * 9) - 5
+        set slot {_back} of {_inv} to {-utils::menu::back}
+        setMenu({_p}, "shop-menu-%{_category}%")
+        open {_inv} to {_p} 
+
+on inventory click:
+    set {_menu} to getMenu(player)
+    if {_menu} = "shop-menu":
+        cancel event 
+
+        exit if type of event-slot = air
+
+        set {_category} to string tag "category" of custom nbt of event-slot 
+        if {_category} is set:
+            openShopPlayerMenu(player, {_category})
+
+    else if {_menu} contains "shop-menu-":
+        cancel event
+        set {_category} to last element out of (split {_menu} by "-")
+        exit if {shop::%{_category}%} is not set 
+        exit if event-slot = air
+
+        if event-slot = {-utils::menu::back}:
+            openShopPlayerMenu(player)
+
+        else:
+            # set {_nbt} to custom nbt of event-slot 
+            # set {_buy} to float tag "buy" of {_nbt}
+            # set {_sell} to float tag "sell" of {_nbt}
+            
+            if click type = left mouse button:
+                openBuySellMenu(Player, event-slot, "buy")
+
+            else if click type = right mouse button:
+                openBuySellMenu(Player, event-slot, "sell")           
+
+function openBuySellMenu(p: player, item: item, action: string): 
+    exit if {_action} != "buy" or "sell"
+
+    set {_item} to stripShopItemLore({_item})
+    set {_itemName} to itemToChat({_item}, false)
+    set {_inv} to chest inventory with 3 rows named "%prettify({_action})%: %{_itemName}%"
+
+    set {_steps::*} to 1, 4, 16, 32
+    set {_nbt} to custom nbt of {_item}
+
+    
+    set {_cost} to float tag {_action} of {_nbt}
+    set float tag "cost-per" of custom nbt of {_item} to {_cost} / item amount of {_item}
+
+    # set slot (integers from 0 to 44) of {_inv} to black stained glass pane named " "
+
+    set slot 22 of {_inv} to {-utils::menu::back}
+
+    # add "", ""
+    set slot 13 of {_inv} to {_item}
+
+    set {_incrementSlot} to 14
+    set {_decrementSlot} to 12
+    loop {_steps::*}:
+        set {_increment} to lime stained glass pane named "&a&l+%loop-value%x"
+        set {_decrement} to red stained glass pane named "&c&l-%loop-value%x"
+        set item amount of {_increment} to loop-value 
+        set item amount of {_decrement} to loop-value
+        set slot {_incrementSlot} of {_inv} to {_increment}
+        set slot {_decrementSlot} of {_inv} to {_decrement}
+
+        add 1 to {_incrementSlot}
+        remove 1 from {_decrementSlot}
+
+    if {_action} = "buy":
+        set {_paper} to paper named "&fPurchase: &a$%{_cost}%"
+        set slot 4 of {_inv} to paper named "&fPurchase: &a$%{_cost}%"
+
+    else if {_action} = "sell":
+        set {_paper} to paper named "&fSell: &a$%{_cost}%"
+
+    set float tag "value" of custom nbt of {_paper} to {_cost}
+    set slot 4 of {_inv} to {_paper}
+
+    # to avoid early on inventory click calls
+    wait 1 tick
+
+    setMenu({_p}, "%{_action}%-menu")
+    open {_inv} to {_p}
+
+on inventory click:
+    set {_menu} to getMenu(player)
+    if {_menu} = "buy-menu" or "sell-menu":
+        cancel event 
+        exit if event-inventory != top inventory of player 
+
+        if index of event-slot = 22:
+            openShopPlayerMenu(player)
+        
+        else if index of event-slot = 4:
+            set {_item} to slot 13 of event-inventory
+            set {_value} to float tag "value" of custom nbt of event-slot
+            set {_item} to stripShopItemData({_item})
+
+            if {_menu} = "buy-menu":
+                if player's balance >= {_value}:
+                    remove {_value} from player's balance 
+                    giveItem(player, {_item})
+
+                    set {_msg} to {-cfg::shop::purchaseMsg}
+                    replace all "<item>" in {_msg} with itemToChat({_item})
+                    replace all "<cost>" in {_msg} with "%{_value}%"
+                    send {_msg} to player
+                else:
+                    send "&cYou can not afford this item!"
+
+            else if {_menu} = "sell-menu":
+                set {_chatItem} to itemToChat({_item})
+                if player has {_item}:
+                    add {_value} to player's balance 
+                    remove {_item} from player 
+
+                    set {_msg} to {-cfg::shop::sellMsg}
+                    replace all "<item>" in {_msg} with {_chatItem}
+                    replace all "<cost>" in {_msg} with "%{_value}%"
+                    send "&fSold &a%{_chatItem}% &ffor &a$%{_value}%"
+                else:
+                    send "&cYou do not have %{_chatItem}%!"
+
+        else if type of event-slot = red stained glass pane:
+            set {_toAdjust} to true 
+            set {_change} to (item amount of event-slot) * -1
+
+        else if type of event-slot = lime stained glass pane:
+            set {_toAdjust} to true 
+            set {_change} to item amount of event-slot 
+
+        if {_toAdjust} = true:
+            set {_item} to slot 13 of event-inventory
+            set {_prevAmount} to item amount of {_item}
+            set {_newAmount} to {_prevAmount} + {_change}
+            set {_newAmount} to clamp({_newAmount}, 1, 64)
+            set item amount of slot 13 of event-inventory to {_newAmount}
+
+            set {_nbt} to custom nbt of {_item}
+            set {_costPer} to float tag "cost-per" of {_nbt}
+            set {_newCost} to {_costPer} * {_newAmount}
+
+            if {_menu} = "buy-menu":
+                set {_paper} to paper named "&fPurchase: &a&l$%{_newCost}%"
+            else if {_menu} = "sell-menu":
+                set {_paper} to paper named "&fSell: &a&l$%{_newCost}%"
+
+            set float tag "value" of custom nbt of {_paper} to {_newCost}
+            set slot 4 of event-inventory to {_paper}
+
+            delete {_toAdjust}
+
+        

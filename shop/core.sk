@@ -1,0 +1,78 @@
+# permission: admin.shop
+command /shop [<text>] [<text>] [<integer>] [<integer>] [<integer>]:
+    usage: &c/shop (create/delete/additem/removeitem) (category) (slot) (sell) (buy)
+    trigger:
+        if arg-1 is not set:
+            if {shop::*} is set:
+                openShopPlayerMenu(player)
+            else:
+                send "&cThe shop has not been set up!"
+
+        else if sender does not have permission "admin.shop":
+            send "&cPermission denied!"
+
+        else if any:
+            arg-1 != "additem", "removeitem", "create" or "delete"
+            arg-2 is not set 
+        then:
+            send usage
+
+        else if arg-1 = "delete":
+            if {shop::%arg-2%} is not set:
+                send "&cThat category does not exist!"
+
+            else:
+                delete {shop::%arg-2%}, {shop::%arg-2%::*}, {shop::%arg-2%::slots::*} # TODO ensure everything is fully deleted
+                send "&cSuccessfully deleted shop category %arg-2%"
+
+        else if arg-3 is not set:
+            send usage
+        
+        else if arg-1 = "create":
+            if {shop::%arg-2%} is set:
+                send "&cA category with that name already exists!"
+            else if getShopCategorySlots() contains arg-3:
+                send "&cThat slot is already taken!"
+            else if arg-3 is not between 0 and 26:
+                send "&cThe slot must be between 0 and 26"
+            else if tool of player = air:
+                send "&cPlease hold the item you want to represent the category"
+
+            else:
+                set {shop::%arg-2%} to arg-2
+                set {shop::%arg-2%::slot} to arg-3
+                set {shop::%arg-2%::item} to type of tool of player 
+                send "&aSuccessfully created shop category %arg-2% (slot %arg-3%)"
+
+        else if arg-5 is not set:
+            send "&cPlease specify a sell and buy price!"
+
+        else if any:
+            arg-4 < 0
+            arg-5 < 0
+        then:
+            send "&cBuy and sell values must be non-negative!"
+
+        else if arg-3 is not between 0 and 44:
+            send "&cItem slot must be between 0 and 44!"
+
+        else if {shop::%arg-2%} is not set:
+            send "&cThat category does not exist!"
+
+        else if arg-1 = "additem":
+            if player's tool = air:
+                send "&cPlease ensure you are holding an item!"
+
+            else if {shop::%arg-2%::slots::%arg-3%} is set:
+                send "&cThat slot is already set!"
+
+            else:
+                set {_item} to tool of player 
+                set {_category} to arg-2 
+                set {_slot} to arg-3 
+                set {_sell} to arg-4 
+                set {_buy} to arg-5
+                set {shop::%{_category}%::items::%{_slot}%} to {_item}
+                set {shop::%{_category}%::%{_slot}%::sell} to {_sell}
+                set {shop::%{_category}%::%{_slot}%::buy} to {_buy}
+                send "&aSet slot %{_slot}% of %prettify({_category})% to %itemToChat({_item})%"

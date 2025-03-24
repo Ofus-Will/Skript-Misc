@@ -1,0 +1,18 @@
+function getShopCategorySlots() :: integers:
+    loop indices of {shop::*}:
+        add {shop::%loop-value%::slot} to {_slots::*}
+
+    return {_slots::*}
+
+function stripShopItemLore(item: item) :: item:
+    set {_lore::*} to lore of {_item}
+    set lore of {_item} to first (size of {_lore::*} - 3) elements of {_lore::*}
+
+    return {_item}
+
+function stripShopItemData(item: item) :: item:
+    delete float tag "buy" of custom nbt of {_item}
+    delete float tag "sell" of custom nbt of {_item}
+    delete float tag "cost-per" of custom nbt of {_item}
+    delete float tag "value" of custom nbt of {_item}
+    return {_item}
