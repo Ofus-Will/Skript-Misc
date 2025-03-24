@@ -11,7 +11,7 @@ function openCrateRewardsMenu(p: player, crate: string, action: string = "view")
     if {_action} = "edit":
         set {_tag} to "edit-crate-%{_crate}%"
     else if {_action} = "open":
-        set {_tag} to "open-crate"
+        set {_tag} to "open-crate-%{_crate}%"
     else:
         set {_tag} to "view-crate"
 
@@ -53,7 +53,7 @@ on inventory click:
 
 on inventory click:
     set {_menu} to getMenu(player)
-    exit if {_menu} != "open-crate"
+    exit if {_menu} does not contain "open-crate"
 
     cancel event 
 
@@ -63,7 +63,9 @@ on inventory click:
     then:
         set {_item} to event-slot 
         giveItem(player, {_item})
-        send "&a&l+ %itemToChat({_item})%" 
+        set {_msg} to {-cfg::crates::crateRewardMsg}
+        replace all "<item>" in {_msg} with itemToChat({_item})
+        send {_msg} to player
         close inventory of player
 
 on inventory close:
@@ -74,3 +76,12 @@ on inventory close:
     set {_slots::*} to getMenuBorderSlots(event-inventory, true)
     set {crates::%{_crate}%::rewards::*} to (slot {_slots::*} of top inventory of player) where [type of input != air] 
     send "&aSaved rewards for %prettify({_crate})% crate"
+
+on inventory close:
+    set {_menu} to getMenu(player)
+    exit if {_menu} does not contain "open-crate"
+
+    if "%event-inventoryclosereason%" = "player":
+        wait 1 tick 
+        set {_crate} to last element out of (split {_menu} by "-")
+        openCrateRewardsMenu(player, {_crate}, "open")

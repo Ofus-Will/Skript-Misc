@@ -1,7 +1,7 @@
 on script load:
-    set {-cfg::crates::animation} to false 
-    set {-cfg::crates::chances} to false 
-    set {-cfg::crates::virtual} to false
+    set {-cfg::crates::keyMsg} to "&aYou received a <crate> crate key!"
+    set {-cfg::crates::keyAllMsg} to "&a&lKeyall: <crate> key"
+    set {-cfg::crates::crateRewardMsg} to "&a&l+ <item>"
 
 on tab complete of "/crate" or "/crates":
     if player has permission "admin.crates":

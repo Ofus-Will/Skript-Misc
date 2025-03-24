@@ -8,3 +8,4 @@ TODO:
 - implement catch safe for rare edge case where when player holds black stained glass pane named " " and double clicks on it he'll take all of them from admin gui lol (minor priority as its only accessible to admins)
 - add virtual crate opening option
 - refactor the way it checks inventory click interactions by using contains for more direct performant comparison
+- add particles!

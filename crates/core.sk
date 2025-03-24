@@ -5,12 +5,21 @@ command /crate [<text>] [<text>]:
     usage: &c/crates (create/delete/edit/list/setblock) (crate)
     trigger:
         if arg-1 is not set:
-            if {-cfg::crates::virtual} = true:
-                # TODO - VIRTUAL
-            else:
-                send usage
+            send usage
         else if arg-1 = "list":
-            send "&aCrates: %(all indices of {crates::*}) ? "none"%"
+            set {_crates::*} to all indices of {crates::*}
+            if {_crates::*} is not set:
+                send "&cThere are currently no crates!"
+                exit 
+
+            send "&aCrates:"
+            loop {_crates::*}:
+                set {_loc} to {crates::%loop-value%::location}
+                if {_loc} is set:
+                    send "&a- %loop-value% (%locString({_loc})%)"
+                else:
+                    send "&a- %loop-value% (no block set)"
+
         else if arg-1 != "create", "delete", "setblock" or "edit":
             send usage 
         
@@ -30,8 +39,9 @@ command /crate [<text>] [<text>]:
             send "&cThat crate does not exist!"
 
         else if arg-1 = "delete":
-            delete {crates::%arg-2%}
-            delete {crates::%arg-2%::rewards::*}
+            set {_loc} to {crates::%arg-2%::location}
+            delete {crates::%arg-2%}, {crates::%arg-2%::*}, {locationToCrate::%{_loc}%}
+            
             send "&aSuccessfully deleted %prettify(arg-2)% crate" 
 
         else if arg-1 = "edit":
@@ -51,6 +61,7 @@ command /crate [<text>] [<text>]:
             else:
                 set {_loc} to location of {_block}
                 set {locationToCrate::%{_loc}%} to arg-2
+                set {crates::%arg-2%::location} to {_loc}
                 send "&aSet location of %arg-2% crate to %locString({_loc})% (%type of {_block}%)"
 
 command /key [<offline player>] [<text>]:
@@ -69,7 +80,9 @@ command /keyall <text>:
             send "&cThat crate does not exist!"
             exit 
 
-        send "&a&lKeyall: %prettify(arg-1)% key" to all players
+        set {_msg} to {-cfg::crates::keyAllMsg}
+        replace all "<crate>" in {_msg} with prettify(arg-1)
+        send {_msg} to all players
         giveCrateKey(all players, arg-1, sender)
 
 on right click:
