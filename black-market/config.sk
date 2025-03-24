@@ -6,6 +6,6 @@ on script load:
     set {-cfg::blackMarket::purchaseMsg} to "&a<player> has purchased <item> from the black market!" # The message sent when a player makes a black market purchase (<player> and <item> get replaced)
     set {-cfg::blackMarket::description} to "&7Be the first to buy, before its too late!" # Description for the black market in the menu
 
-on tab complete of "/blackmarket":
+on tab complete of "/blackmarket" or "/bm":
     if player has permission "admin.blackmarket":
-        set tab completions for position 1 to "additem", "viewitems", "cancel"
+        set tab completions for position 1 to "additem", "viewitems", "cancel", "refresh"

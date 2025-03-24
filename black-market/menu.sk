@@ -83,11 +83,9 @@ function updateBlackMarketPlayerMenu(i: inventory):
         add 6 to {_n}
 
 on inventory click:
-    if all:
-        getMenu(player) = "blackmarket-menu"
-        event-inventory = top inventory of player 
-    then:
-        cancel event 
+    if getMenu(player) = "blackmarket-menu":
+        cancel event
+        exit if event-inventory = top inventory of player 
 
         exit if index of event-slot != 10 or 16
 

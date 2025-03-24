@@ -1,6 +1,7 @@
+# permission: admin.blackmarket
 command /blackmarket [<text>] [<integer>] [<integer>]:
     aliases: /bm
-    usage: &c/blackmarket (additem/viewitems/cancel) (money) (shards)
+    usage: &c/blackmarket (additem/viewitems/cancel/refresh) (money) (shards)
     trigger:
         if arg-1 is not set:
             if {-cfg::blackMarket::commandEnabled} = false:
@@ -12,6 +13,9 @@ command /blackmarket [<text>] [<integer>] [<integer>]:
         
         else if player does not have permission "admin.blackmarket":
             send "&cPermission denied!"
+
+        else if arg-1 = "refresh":
+            updateBlackMarket()
 
         else if arg-1 = "viewitems":
             openBlackMarketAdminMenu(player)
@@ -36,7 +40,10 @@ command /blackmarket [<text>] [<integer>] [<integer>]:
 # change to every minute if you're worried about performance and adjust accordingly
 every second:
     set {_refreshTime} to {-cfg::blackMarket::refreshTime}
-    if (difference between now and {blackMarket::lastRefresh}) ? {_refreshTime} >= {_refreshTime}:
+    if all:
+        (difference between now and {blackMarket::lastRefresh}) ? {_refreshTime} >= {_refreshTime}
+        {blackMarket::items::*} is set 
+    then:
         updateBlackMarket()
 
 function updateBlackMarket():
@@ -45,7 +52,6 @@ function updateBlackMarket():
 
     exit if {blackMarket::items::*} is not set 
 
-    delete {blackMarket::currentItems::*}
     send {-cfg::blackMarket::refreshMsg} to all players 
 
     loop 2 times:

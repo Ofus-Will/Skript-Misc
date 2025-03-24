@@ -1,0 +1,328 @@
+# written by: Ofus (Discord: OfusWill)
+
+## [SECTION: config.sk]
+on script load:
+    set {-cfg::blackMarket::commandEnabled} to true # allow players to access menu by running /blackmarket 
+    set {-cfg::blackMarket::refreshTime} to 15 minutes # the time between black market refreshes
+
+    set {-cfg::blackMarket::refreshMsg} to "&aThe black market has refreshed!" # the message sent to notify all players the black market has been refreshed
+    set {-cfg::blackMarket::purchaseMsg} to "&a<player> has purchased <item> from the black market!" # The message sent when a player makes a black market purchase (<player> and <item> get replaced)
+    set {-cfg::blackMarket::description} to "&7Be the first to buy, before its too late!" # Description for the black market in the menu
+
+on tab complete of "/blackmarket" or "/bm":
+    if player has permission "admin.blackmarket":
+        set tab completions for position 1 to "additem", "viewitems", "cancel", "refresh"
+
+# written by: Ofus (Discord: OfusWill)
+
+## [SECTION: admin.sk]
+function addBlackMarketItem(p: player, item: item, money: integer, shards: integer):
+    set {_tool} to tool of {_p}
+    if type of {_tool} = air:
+        send "&cYou are not holding an item!" to {_p}
+    else if any:
+        {_money} < 0
+        {_shards} < 0
+    then:
+        send "&cAll prices must be non-negative!" to {_p}
+
+    else if {blackMarket::items::%{_tool}%} is set:
+        send "&cThat item is already in the black market!" to {_p}
+
+    else:
+        set {blackMarket::items::%{_tool}%} to {_tool}
+        set {blackMarket::costs::%{_tool}%::money} to {_money}
+        set {blackMarket::costs::%{_tool}%::shards} to {_shards}
+
+        send "&aAdded your tool to the black market!" to {_p}
+        set tool of {_p} to air
+        
+function removeBlackMarketItem(p: player, item: item):
+    if {blackMarket::items::%{_item}%} is not set:
+        send "&cThat item is not in the black market!" to {_p}
+
+    else:
+        delete {blackMarket::items::%{_item}%}, {blackMarket::costs::%{_item}%::*}
+        send "&aSuccessfully removed black market item!" to {_p}
+
+function modifyBlackMarketItem(p: player, item: item):
+    if {blackMarket::items::%{_item}%} is not set:
+        send {-cfg::errorMsg} to {_p}
+        exit 
+
+    set {_uuid} to uuid of {_p}
+    if {-admin::%{_uuid}%::blackMarketModify} is set:
+        send "&cYou are already modifying the black market!" to {_p}
+        
+    else:
+        set {-admin::%{_uuid}%::blackMarketModify} to {_item}
+        blackMarketChatModify({_p})
+        
+function blackMarketChatModify(p: player):
+    set {_uuid} to uuid of {_p}
+    set {_item} to {-admin::%{_uuid}%::blackMarketModify}
+    set {_cost::money} to {blackMarket::costs::%{_item}%::money} ? 0
+    set {_cost::shards} to {blackMarket::costs::%{_item}%::shards} ? 0
+    send "", "&fPlease enter your new prices into chat", "&8➠ &fFormat: &amoney-shards", "&8➠ &fExample: &a100-50", "&8➠ &fCurrent: &a%{_cost::money}%$, %{_cost::shards}% shards", "" to {_p}
+
+on chat:
+    if {-admin::%player's uuid%::blackMarketModify} is set:
+        cancel event 
+        set {_prices::*} to message parsed as "%number%-%number%"
+        if size of {_prices::*} != 2:
+            send "&cIncorrect, please try again! To cancel type /blackmarket cancel"
+            blackMarketChatModify(player)
+        else if any:
+            {_prices::1} < 0
+            {_prices::2} < 0
+        then:
+            send "&cPlease ensure all numbers are non-negative!"
+            blackMarketChatModify(player)
+        else:
+            set {_item} to {-admin::%player's uuid%::blackMarketModify}
+            set {blackMarket::costs::%{_item}%::money} to {_prices::1}
+            set {blackMarket::costs::%{_item}%::shards} to {_prices::2}
+            delete {-admin::%player's uuid%::blackMarketModify}
+            send "&aSuccessfully changed the price of your black market item (%{_prices::1}%$, %{_prices::2}% shards)"
+
+on command:
+    if all:
+        {-admin::%player's uuid%::blackMarketModify} is set
+        full command != "blackmarket cancel"
+    then:
+        cancel event 
+        send "&cTo cancel editing the black market type /blackmarket cancel"
+
+# written by: Ofus (Discord: OfusWill)
+
+## [SECTION: core.sk]
+# permission: admin.blackmarket
+command /blackmarket [<text>] [<integer>] [<integer>]:
+    aliases: /bm
+    usage: &c/blackmarket (additem/viewitems/cancel/refresh) (money) (shards)
+    trigger:
+        if arg-1 is not set:
+            if {-cfg::blackMarket::commandEnabled} = false:
+                send "&cThe black market is not available via command!"
+            else if {blackMarket::currentItems::*} is not set:
+                send "&cThe black market has not been set up yet!"
+            else:
+                openBlackMarketPlayerMenu(player)
+        
+        else if player does not have permission "admin.blackmarket":
+            send "&cPermission denied!"
+
+        else if arg-1 = "refresh":
+            updateBlackMarket()
+
+        else if arg-1 = "viewitems":
+            openBlackMarketAdminMenu(player)
+
+        else if arg-1 = "cancel":
+            if {-admin::%player's uuid%::blackMarketModify} is set:
+                delete {-admin::%player's uuid%::blackMarketModify} 
+                send "&cCancelled your black market edit"
+            else:
+                send "&cYou are not currently editing the black market!"
+
+        else if any:
+            arg-1 != "additem"
+            arg-2 is not set 
+            arg-3 is not set 
+        then:
+            send usage
+
+        else:
+            addBlackMarketItem(player, tool of player, arg-2, arg-3)
+
+# change to every minute if you're worried about performance and adjust accordingly
+every second:
+    set {_refreshTime} to {-cfg::blackMarket::refreshTime}
+    if all:
+        (difference between now and {blackMarket::lastRefresh}) ? {_refreshTime} >= {_refreshTime}
+        {blackMarket::items::*} is set 
+    then:
+        updateBlackMarket()
+
+function updateBlackMarket():
+    delete {blackMarket::currentItems::*}, {blackMarket::purchased::*}
+    set {blackMarket::lastRefresh} to now 
+
+    exit if {blackMarket::items::*} is not set 
+
+    send {-cfg::blackMarket::refreshMsg} to all players 
+
+    loop 2 times:
+        set {_item} to random element out of ({blackMarket::items::*} where [input != {_item}])
+        set {blackMarket::currentItems::%{_item}%} to {_item}
+    
+function buyBlackMarketItem(p: player, item: item, currency: string):
+    exit if {blackMarket::items::%{_item}%} is not set 
+    set {_item} to removeBlackMarketLore({_p}, {_item})
+
+    if any:
+        {blackMarket::purchased::%{_item}%} is set 
+        lore of {_item} contains "&c&lPURCHASED"
+    then:
+        send "&cSomeone has already purchased this item!" to {_p}
+        exit 
+    
+    set {_uuid} to uuid of {_p}
+    set {_cost} to {blackMarket::costs::%{_item}%::%{_currency}%}
+
+    if {_currency} = "money":
+        set {_canAfford} to whether balance of {_p} >= {_cost}
+        if {_canAfford} = true:
+            remove {_cost} from balance of {_p} 
+    else if {_currency} = "shards":
+        set {_canAfford} to whether {stats::%{_uuid}%::shards} >= {_cost}
+        if {_canAfford} = true:
+            remove {_cost} from {stats::%{_uuid}%::shards} 
+    if {_canAfford} = true:
+        set {blackMarket::purchased::%{_item}%} to true 
+        giveItem({_p}, {_item})
+
+        set {_msg} to {-cfg::blackMarket::purchaseMsg}
+        replace all "<player>" in {_msg} with "%{_p}%"
+        replace all "<item>" in {_msg} with "%{_item}%"
+
+        send "&a%{_p}% has purchased %itemToChat({_item})% from the black market!" to all players
+        updateBlackMarketPlayerMenu(top inventory of {_p})
+
+    else:
+        # close inventory of {_p}
+        send "&cYou can not afford this item!" to {_p}
+
+# written by: Ofus (Discord: OfusWill)
+
+## [SECTION: menu.sk]
+# Black market admin menu
+
+function openBlackMarketAdminMenu(p: player):
+    if {blackMarket::items::*} is not set:
+        send "&cThere are currently no black market items!" to {_p}
+    else if all:
+        (all players where [getMenu(input) = "blackmarket-admin-menu"]) is set 
+        getMenu({_p}) != "blackmarket-admin-menu"
+    then:
+        send "&cSomeone else is currently modifying the black market!" to {_p}
+    else:
+        set {_i} to chest inventory with 6 rows named "Black Market (Modify)"
+        setMenuBorders({_i})
+
+        setMenu({_p}, "blackmarket-admin-menu")
+        open {_i} to {_p}
+
+        updateBlackMarketAdminMenu({_i})
+
+function updateBlackMarketAdminMenu(i: inventory):
+    set slot getMenuBorderSlots({_i}, true) of {_i} to air
+
+    set {_n} to 9
+    loop {blackMarket::items::*}:
+        add 1 to {_n}
+        add 2 to {_n} if type of slot {_n} of {_i} != air # TODO: add multi page support
+
+        set {_item} to loop-value 
+        add getBlackMarketLore({_item}, true) to lore of {_item}
+
+        set slot {_n} of {_i} to {_item}
+
+on inventory click:
+    if all:
+        getMenu(player) = "blackmarket-admin-menu"
+        event-inventory = top inventory of player 
+    then:
+        cancel event
+
+        if any:
+            getMenuBorderSlots(event-inventory) contains index of event-slot
+            event-inventory != top inventory of player 
+            type of event-slot = air
+        then:
+            exit
+
+        set {_item} to removeBlackMarketLore(player, event-slot)
+
+        if click type = left mouse button:
+            modifyBlackMarketItem(player, {_item})
+            close inventory of player
+
+        else if click type = right mouse button:
+            removeBlackMarketItem(player, {_item})
+            updateBlackMarketAdminMenu(top inventory of player)
+
+# Player black market menu 
+
+function openBlackMarketPlayerMenu(p: player):
+    set {_i} to chest inventory with 3 rows named "&0Black Market"
+    
+    setMenu({_p}, "blackmarket-menu")
+    open {_i} to {_p}
+
+    while getMenu({_p}) = "blackmarket-menu":
+        updateBlackMarketPlayerMenu({_i})
+        wait 1 second 
+
+function updateBlackMarketPlayerMenu(i: inventory):
+    set {_refreshTime} to getBlackMarketRefreshTime()
+
+    set slot (integers from 0 to 26) of {_i} to black stained glass pane named " "
+    set slot 13 of {_i} to clock named "&dBlack Market" with lore {-cfg::blackMarket::description}, "", "&fRefreshes in: &a%{_refreshTime}%"
+
+    set {_n} to 10
+    loop {blackMarket::currentItems::*}:
+        if {blackMarket::items::%loop-value%} is set:
+            set {_item} to loop-value 
+            add getBlackMarketLore({_item}) to lore of {_item}
+            set slot {_n} of {_i} to {_item}
+        else:
+            set slot {_n} of {_i} to barrier named "&4&lERROR" with lore "&cItem removed from black market"
+        add 6 to {_n}
+
+on inventory click:
+    if getMenu(player) = "blackmarket-menu":
+        cancel event
+        exit if event-inventory = top inventory of player 
+
+        exit if index of event-slot != 10 or 16
+
+        if click type = left mouse button:
+            buyBlackMarketItem(player, event-slot, "money")
+        else if click type = right mouse button:
+            buyBlackMarketItem(player, event-slot, "shards")
+
+# written by: Ofus (Discord: OfusWill)
+
+## [SECTION: utils.sk]
+function getBlackMarketRefreshTime() :: string:
+    set {_initDiff} to difference between now and {blackMarket::lastRefresh}
+    set {_relDiff} to difference between {_initDiff} and {-cfg::blackMarket::refreshTime}
+    return formatTimespan({_relDiff})
+
+function getBlackMarketLore(item: item, admin: boolean = false) :: strings:
+    exit if {blackMarket::items::%{_item}%} is not set
+    
+    set {_lore::*} to "", "&8➠ &fMoney: &e%{blackMarket::costs::%{_item}%::money} ? 0%$", "&8➠ &fShards: &d%{blackMarket::costs::%{_item}%::shards} ? 0%", ""
+    if {_admin} = true:
+        add "&8➠ &7LMB to &amodify", "&8➠ &7RMB to &cremove" to {_lore::*}
+    else if {blackMarket::purchased::%{_item}%} is not set:
+        add "&8➠ &7LMB to buy &8(Money)", "&8➠ &7RMB to buy &8(Shards)" to {_lore::*}
+    else:
+        add "&c&lPURCHASED" to {_lore::*}
+    return {_lore::*}
+
+function removeBlackMarketLore(p: player, item: item) :: item:
+    if line (size of lore of {_item}) of lore of {_item} = "&c&lPURCHASED":
+        set {_lines} to 5
+    else:
+        set {_lines} to 6
+
+    set {_lore::*} to lore of {_item}
+    set lore of {_item} to first (size of {_lore::*} - 6) elements of {_lore::*}
+
+    if {blackMarket::items::%{_item}%} is not set:
+        send {-cfg::errorMsg} to {_p}
+    else:
+        return {_item}
+
