@@ -1,11 +1,14 @@
+on script load:
+    set {-utils::menu::back} to barrier named "&c&lGo Back"
+
 # add borders to menus
 function setMenuBorders(i: inventory, back: boolean = false):
     set {_fill} to black stained glass pane named " "
 
     set slot getMenuBorderSlots({_i}) of {_i} to {_fill}
 
-    # if {_back} = true:
-    #     # TODO
+    if {_back} = true:
+        set slot (slots of {_i}) - 5 of {_i} to {-utils::menu::back}
 
 function getMenuBorderSlots(i: inventory, inverse: boolean = false) :: integers:
     set {_size} to rows of {_i} * 9
@@ -36,6 +39,7 @@ function getMenu(p: player) :: string:
 function setMenu(p: player, menu: string) :: string:
     set metadata tag "menu" of {_p} to {_menu}
 
+# by setting the menu prior to opening for security reasons i may be creating issues  
 # possibly add nbt to menus and add second check to check if new inventory is a custom one (should always be if its forced an inventory close event, but better to be safe)
 on inventory close:
     if event-inventoryclosereason != open new:
@@ -51,7 +55,9 @@ function formatTimespan(timespan: timespan) :: string:
     loop {_t::*}:
         if loop-value < 10:
             set {_t::%loop-index%} to "0%loop-value%"
-    return "%{_t::hours}%:%{_t::mins}%:%{_t::secs}%"
+    if {_t::hours} != "00":
+        return "%{_t::hours}%:%{_t::mins}%:%{_t::secs}%"
+    return "%{_t::mins}%:%{_t::secs}%"
 
 # TODO: formatNumber()
 
@@ -93,3 +99,24 @@ function getWeightedRandomElement(elements: objects, weights: numbers) :: object
     loop {_weights::*}:
         return {_elements::%loop-index%} if {_random} < loop-value
         remove loop-value from {_random}
+
+expression %itemtype% with hidden attributes:
+    get:
+        set {_i} to expr-1
+        loop all attribute types:
+            add default loop-value modifier of {_i} to loop-value modifier of {_i}
+        add hide attributes to item flags of {_i}
+        return {_i}
+
+function itemToChat(item: item, amount: boolean = true) :: string:
+    set {_type} to prettify("%type of {_item}%")
+    set {_name} to "%(uncoloured name of {_item}) ? {_type}%"
+    if {_amount} = true:
+        set {_name} to "%item amount of {_item}%x %{_name}%"
+    return {_name}
+
+function clearChat(p: players):
+    loop {_p::*}:
+        set {_p} to loop-value
+        loop 100 times:
+            send " " to {_p}
