@@ -3,7 +3,7 @@ on script load:
     # Config
     set {-cfg::pets::movementDelay} to 1 # Lower number is more smooth, higher number provides better performance (range: 1-5) 
     set {-cfg::pets::particles} to true # enables a particle trail for the pets
-    set {-cfg::pets::name} to "Pet: <name>" # The name that displays next to the head, <name> gets replaced by the pet's name
+    set {-cfg::pets::name} to "&fPet: <name>" # The name that displays next to the head, <name> gets replaced by the pet's name
 
     set {-pets::names::*} to "cheetah", "villager", "iron_golem", "blaze", "turtle", "frog", "wolf"
 

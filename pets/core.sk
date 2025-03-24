@@ -1,6 +1,4 @@
-# TODO:
-# possibly switch to permission based system for pets?
-
+# permission: admin.pets
 command /pets [<text>] [<offline player>] [<text>]:
     usage: &c/pets <give/remove> <player> <pet>
     aliases: /pet
@@ -9,7 +7,7 @@ command /pets [<text>] [<offline player>] [<text>]:
         if arg-1 is not set:
             petsMenu(player)
 
-        else if sender does not have permission "admins.pets":
+        else if sender does not have permission "admin.pets":
             send "&cPermission denied!"
 
         else if any:
