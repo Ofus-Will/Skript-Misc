@@ -1,5 +1,7 @@
 on script load:
     set {-cfg::shards::periodicShards} to 10
+    
+    set {-cfg::shards::periodicMsg} to "&aYou have received <shards> shards for being online!" 
 
 on join:
     set {-stats::%player's uuid%::periodicShards} to now 
@@ -13,15 +15,18 @@ every minute:
             set {-stats::%loop-player's uuid%::periodicShards} to now 
             set {_shards} to {-cfg::shards::periodicShards} 
             add {_shards} to {stats::%loop-player's uuid%::shards}
-            send "&aYou have received %{_shards}% shards for being online!" to loop-player 
+            
+            set {_msg} to {-cfg::shards::periodicMsg}
+            replace all "<shards>" in {_msg} with "%{_shards}%"
+            send {_msg} to loop-player 
 
 command /shards [<text>] [<offline player>] [<number>]:
     usage: &c/shards (set/give/remove/reset) (player) (shards)
     trigger:
         if arg-1 is not set:
-            send "&aShards: %{stats::%player's uuid%::shards} ? 0%" 
-            set {_diff} to difference between {-stats::%player's uuid%::periodicShards} and now  
-            send "&aNext shards reward: %formatTimespan(difference between 15 minutes and {_diff})%"
+            send "&aYour Shards: &d%{stats::%player's uuid%::shards} ? 0%" 
+            set {_diff} to difference between {-stats::%player's uuid%::periodicShards} and now 
+            send "&aNext shards reward: &e%formatTimespan(difference between 15 minutes and {_diff})%"
         else if sender does not have permission "admin.shards":
             send "&cYou do not have permission to use this command with arguments!"
         else if arg-1 != "set", "give", "remove" or "reset":
