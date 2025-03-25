@@ -16,10 +16,9 @@ def compile_scripts(folder_path, output_filename):
         sk_files.insert(0, "config.sk")
 
     with open(output_path, 'w', encoding='utf-8') as outfile:
+        outfile.write("# written by: Ofus (Discord: OfusWill)\n")
         for filename in sk_files:
             file_path = os.path.join(folder_path, filename)
-            
-            outfile.write("# written by: Ofus (Discord: OfusWill)\n")
 
             with open(file_path, 'r', encoding='utf-8') as infile:
                 outfile.write(f"\n## [SECTION: {filename}]\n")
